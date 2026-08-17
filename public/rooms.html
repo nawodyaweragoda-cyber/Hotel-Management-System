@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Rooms - Hotel API</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav>
+        <h2>Hotel Management System</h2>
+        <ul>
+            <li><a href="rooms.html" class="active">1. All Rooms (GET)</a></li>
+            <li><a href="room-details.html">2. Room Details (GET :id)</a></li>
+            <li><a href="create-booking.html">3. Create Booking (POST)</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h1>All Available Rooms</h1>
+            <p class="subtitle">API Endpoint: <code>GET http://localhost:5000/api/rooms</code></p>
+            
+            <button class="btn" onclick="loadRooms()" style="margin-bottom: 15px;">🔄 Refresh Data</button>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Room Number</th>
+                        <th>Type</th>
+                        <th>Price / Night</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="roomsTableBody">
+                    <tr><td colspan="5">Loading rooms data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api/rooms';
+
+        async function loadRooms() {
+            const tableBody = document.getElementById('roomsTableBody');
+            try {
+                const response = await fetch(API_URL);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    tableBody.innerHTML = result.data.map(room => `
+                        <tr>
+                            <td><strong>${room.roomNumber}</strong></td>
+                            <td>${room.type}</td>
+                            <td>LKR ${room.pricePerNight.toLocaleString()}</td>
+                            <td>
+                                <span style="color: ${room.isAvailable ? 'green' : 'red'}; font-weight: bold;">
+                                    ${room.isAvailable ? 'Available' : 'Booked'}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="room-details.html?id=${room._id}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">View</a>
+                                <a href="create-booking.html?roomId=${room._id}" class="btn" style="padding: 6px 12px; font-size: 0.85rem;">Book</a>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="5">No rooms found in database.</td></tr>';
+                }
+            } catch (error) {
+                tableBody.innerHTML = '<tr><td colspan="5" style="color:red;">Failed to connect to backend server.</td></tr>';
+            }
+        }
+
+        
+        loadRooms();
+    </script>
+</body>
+</html>
