@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Payment - Hotel Management System</title>
+
+  <!-- PayHere JavaScript SDK -->
+  <script src="https://www.payhere.lk/lib/payhere.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7f8;
+      color: #222;
+    }
+
+    .navbar {
+      background: #234783;
+      color: white;
+      padding: 18px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar h2 {
+      font-size: 22px;
+    }
+
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin-left: 25px;
+      font-weight: bold;
+    }
+
+    .navbar a:hover {
+      text-decoration: underline;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 50px auto;
+      background: white;
+      padding: 35px;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      color: #173c78;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 22px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    select {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #234783;
+    }
+
+    .booking-info {
+      display: none;
+      background: #f4f6f9;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+    }
+
+    .booking-info p {
+      margin: 8px 0;
+    }
+
+    .amount {
+      color: #173c78;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .pay-btn {
+      width: 100%;
+      background: #234783;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 6px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .pay-btn:hover {
+      background: #173c78;
+    }
+
+    .pay-btn:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    #message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .success {
+      display: block !important;
+      background: #dff5e3;
+      color: green;
+    }
+
+    .error {
+      display: block !important;
+      background: #ffe1e1;
+      color: #c62828;
+    }
+
+    @media (max-width: 768px) {
+      .navbar {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .navbar a {
+        margin: 0 8px;
+      }
+
+      .container {
+        margin: 20px 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="navbar">
+    <h2>Hotel Management System</h2>
+
+    <div>
+      <a href="/rooms.html">Rooms</a>
+      <a href="/create-booking.html">Create Booking</a>
+      <a href="/booking-history.html">My Booking History</a>
+      <a href="/payment.html">Payment</a>
+    </div>
+  </div>
+
+
+  <div class="container">
+
+    <h1>Simple Payment Processing</h1>
+
+    <p class="subtitle">
+      Select a confirmed booking and complete the payment.
+    </p>
+
+
+    <div class="form-group">
+
+      <label for="bookingSelect">
+        Select Booking
+      </label>
+
+      <select
+        id="bookingSelect"
+        onchange="showBookingDetails()"
+      >
+        <option value="">
+          Loading bookings...
+        </option>
+      </select>
+
+    </div>
+
+
+    <div
+      id="bookingInfo"
+      class="booking-info"
+    >
+
+      <p>
+        <strong>Guest:</strong>
+        <span id="guestName"></span>
+      </p>
+
+      <p>
+        <strong>Room:</strong>
+        <span id="roomNumber"></span>
+      </p>
+
+      <p>
+        <strong>Check-In:</strong>
+        <span id="checkIn"></span>
+      </p>
+
+      <p>
+        <strong>Check-Out:</strong>
+        <span id="checkOut"></span>
+      </p>
+
+      <p>
+        <strong>Total Amount:</strong>
+      </p>
+
+      <p
+        id="totalAmount"
+        class="amount"
+      ></p>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label for="paymentMethod">
+        Payment Method
+      </label>
+
+      <select id="paymentMethod">
+
+        <option value="">
+          Select Payment Method
+        </option>
+
+        <option value="Card">
+          Card Payment - PayHere
+        </option>
+
+        <option value="Cash">
+          Cash Payment
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <button
+      id="payButton"
+      class="pay-btn"
+      onclick="processPayment()"
+    >
+      Pay Now
+    </button>
+
+
+    <div id="message"></div>
+
+  </div>
+
+
+  <script>
+
+    let bookings = [];
+
+
+    // ==========================================
+    // LOAD BOOKINGS
+    // ==========================================
+
+    async function loadBookings() {
+
+      const select =
+        document.getElementById('bookingSelect');
+
+      try {
+
+        const response =
+          await fetch('/api/bookings');
+
+        const result =
+          await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || 'Failed to load bookings'
+          );
+        }
+
+        bookings = result.data.filter(
+          booking =>
+            (booking.status || 'Confirmed') !== 'Cancelled'
+        );
+
+        select.innerHTML = `
+          <option value="">
+            Select a booking
+          </option>
+        `;
+
+        if (bookings.length === 0) {
+
+          select.innerHTML = `
+            <option value="">
+              No confirmed bookings available
+            </option>
+          `;
+
+          document.getElementById(
+            'payButton'
+          ).disabled = true;
+
+          return;
+        }
+
+        bookings.forEach(booking => {
+
+          const roomNumber =
+            booking.roomId?.roomNumber || 'N/A';
+
+          const option =
+            document.createElement('option');
+
+          option.value =
+            booking._id;
+
+          option.textContent =
+            `Room ${roomNumber} - ${booking.guestName} - LKR ${Number(
+              booking.totalAmount
+            ).toLocaleString()}`;
+
+          select.appendChild(option);
+
+        });
+
+      } catch (error) {
+
+        console.error(error);
+
+        select.innerHTML = `
+          <option value="">
+            Failed to load bookings
+          </option>
+        `;
+
+      }
+
+    }
+
+
+    // ==========================================
+    // SHOW BOOKING DETAILS
+    // ==========================================
+
+    function showBookingDetails() {
+
+      const bookingId =
+        document.getElementById(
+          'bookingSelect'
+        ).value;
+
+      const info =
+        document.getElementById(
+          'bookingInfo'
+        );
+
+      if (!bookingId) {
+
+        info.style.display = 'none';
+        return;
+
+      }
+
+      const booking =
+        bookings.find(
+          item => item._id === bookingId
+        );
+
+      if (!booking) {
+
+        info.style.display = 'none';
+        return;
+
+      }
+
+      document.getElementById(
+        'guestName'
+      ).textContent =
+        booking.guestName;
+
+      document.getElementById(
+        'roomNumber'
+      ).textContent =
+        booking.roomId?.roomNumber || 'N/A';
+
+      document.getElementById(
+        'checkIn'
+      ).textContent =
+        new Date(
+          booking.checkInDate
+        ).toLocaleDateString();
+
+      document.getElementById(
+        'checkOut'
+      ).textContent =
+        new Date(
+          booking.checkOutDate
+        ).toLocaleDateString();
+
+      document.getElementById(
+        'totalAmount'
+      ).textContent =
+        `LKR ${Number(
+          booking.totalAmount
+        ).toLocaleString()}`;
+
+      info.style.display = 'block';
+
+    }
+
+
+    // ==========================================
+    // PROCESS PAYMENT
+    // ==========================================
+
+    async function processPayment() {
+
+      const bookingId =
+        document.getElementById(
+          'bookingSelect'
+        ).value;
+
+      const paymentMethod =
+        document.getElementById(
+          'paymentMethod'
+        ).value;
+
+      if (!bookingId) {
+        showError(
+          'Please select a booking.'
+        );
+        return;
+      }
+
+      if (!paymentMethod) {
+        showError(
+          'Please select a payment method.'
+        );
+        return;
+      }
+
+
+      // ======================================
+      // CASH PAYMENT
+      // ======================================
+
+      if (paymentMethod === 'Cash') {
+
+        processCashPayment(bookingId);
+
+        return;
+
+      }
+
+
+      // ======================================
+      // PAYHERE CARD PAYMENT
+      // ======================================
+
+      try {
+
+        const response =
+          await fetch(
+            '/api/payments/payhere-hash',
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body: JSON.stringify({
+                bookingId
+              })
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (!response.ok || !result.success) {
+
+          throw new Error(
+            result.message ||
+            'Unable to prepare PayHere payment'
+          );
+
+        }
+
+        const data =
+          result.data;
+
+        const booking =
+          data.booking;
+
+
+        const payment = {
+
+          // Sandbox = real PayHere test gateway
+          sandbox: true,
+
+          merchant_id:
+            data.merchantId,
+
+          return_url:
+            undefined,
+
+          cancel_url:
+            undefined,
+
+          /*
+            IMPORTANT:
+            localhost cannot receive PayHere
+            server-to-server notifications.
+
+            Replace this with your real public
+            backend URL before final deployment.
+          */
+          notify_url:
+            'https://myhotelsystem.com/api/payments/payhere-notify',
+
+          order_id:
+            data.orderId,
+
+          items:
+            `Hotel Room ${
+              booking.roomId?.roomNumber || ''
+            }`,
+
+          amount:
+            data.amount,
+
+          currency:
+            data.currency,
+
+          hash:
+            data.hash,
+
+          first_name:
+            booking.guestName || 'Guest',
+
+          last_name:
+            'Guest',
+
+          email:
+            'guest@example.com',
+
+          phone:
+            '0771234567',
+
+          address:
+            'Hotel Guest',
+
+          city:
+            'Colombo',
+
+          country:
+            'Sri Lanka'
+
+        };
+
+
+        // ======================================
+        // PAYHERE COMPLETED
+        // ======================================
+
+        payhere.onCompleted =
+          async function(orderId) {
+
+            console.log(
+              'PayHere completed:',
+              orderId
+            );
+
+            try {
+
+              const saveResponse =
+                await fetch(
+                  '/api/payments',
+                  {
+                    method: 'POST',
+
+                    headers: {
+                      'Content-Type':
+                        'application/json'
+                    },
+
+                    body: JSON.stringify({
+                      bookingId,
+                      paymentMethod:
+                        'Card'
+                    })
+                  }
+                );
+
+              const saveResult =
+                await saveResponse.json();
+
+              if (
+                !saveResponse.ok ||
+                !saveResult.success
+              ) {
+
+                throw new Error(
+                  saveResult.message ||
+                  'Could not save payment'
+                );
+
+              }
+
+              showSuccess(
+                'PayHere Sandbox payment completed successfully!'
+              );
+
+            } catch (error) {
+
+              showError(
+                error.message
+              );
+
+            }
+
+          };
+
+
+        // ======================================
+        // PAYHERE DISMISSED
+        // ======================================
+
+        payhere.onDismissed =
+          function() {
+
+            showError(
+              'Payment window was closed.'
+            );
+
+          };
+
+
+        // ======================================
+        // PAYHERE ERROR
+        // ======================================
+
+        payhere.onError =
+          function(error) {
+
+            console.error(
+              'PayHere Error:',
+              error
+            );
+
+            showError(
+              'PayHere payment failed.'
+            );
+
+          };
+
+
+        // ======================================
+        // OPEN PAYHERE CHECKOUT
+        // ======================================
+
+        payhere.startPayment(
+          payment
+        );
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        showError(
+          error.message
+        );
+
+      }
+
+    }
+
+
+    // ==========================================
+    // CASH PAYMENT
+    // ==========================================
+
+    async function processCashPayment(
+      bookingId
+    ) {
+
+      try {
+
+        const response =
+          await fetch(
+            '/api/payments',
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body: JSON.stringify({
+                bookingId,
+                paymentMethod:
+                  'Cash'
+              })
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !result.success
+        ) {
+
+          throw new Error(
+            result.message ||
+            'Cash payment failed'
+          );
+
+        }
+
+        showSuccess(
+          'Cash payment recorded successfully!'
+        );
+
+      } catch (error) {
+
+        showError(
+          error.message
+        );
+
+      }
+
+    }
+
+
+    // ==========================================
+    // SUCCESS MESSAGE
+    // ==========================================
+
+    function showSuccess(text) {
+
+      const message =
+        document.getElementById(
+          'message'
+        );
+
+      message.className =
+        'success';
+
+      message.textContent =
+        '✓ ' + text;
+
+    }
+
+
+    // ==========================================
+    // ERROR MESSAGE
+    // ==========================================
+
+    function showError(text) {
+
+      const message =
+        document.getElementById(
+          'message'
+        );
+
+      message.className =
+        'error';
+
+      message.textContent =
+        text;
+
+    }
+
+
+    // ==========================================
+    // INITIAL LOAD
+    // ==========================================
+
+    loadBookings();
+
+  </script>
+
+</body>
+</html>

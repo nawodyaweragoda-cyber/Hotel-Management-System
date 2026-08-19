@@ -1,0 +1,32 @@
+[
+  {
+    "roomNumber": "101",
+    "type": "Deluxe",
+    "pricePerNight": 15000,
+    "isAvailable": true
+  },
+  {
+    "roomNumber": "102",
+    "type": "Standard Single",
+    "pricePerNight": 8000,
+    "isAvailable": true
+  },
+  {
+    "roomNumber": "103",
+    "type": "Executive Double",
+    "pricePerNight": 18000,
+    "isAvailable": true
+  },
+  {
+    "roomNumber": "104",
+    "type": "Luxury Suite",
+    "pricePerNight": 30000,
+    "isAvailable": true
+  },
+  {
+    "roomNumber": "105",
+    "type": "Family Room",
+    "pricePerNight": 22000,
+    "isAvailable": true
+  }
+]

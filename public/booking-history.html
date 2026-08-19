@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>My Booking History - Hotel Management System</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7f8;
+      color: #222;
+    }
+
+    /* ==============================
+       NAVBAR
+    ============================== */
+
+    .navbar {
+      background: #234783;
+      color: white;
+      padding: 18px 30px;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar h2 {
+      font-size: 22px;
+    }
+
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin-left: 25px;
+      font-weight: bold;
+    }
+
+    .navbar a:hover {
+      text-decoration: underline;
+    }
+
+    /* ==============================
+       MAIN CONTAINER
+    ============================== */
+
+    .container {
+      max-width: 1100px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      color: #173c78;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    /* ==============================
+       REFRESH BUTTON
+    ============================== */
+
+    .refresh-btn {
+      background: #234783;
+      color: white;
+      border: none;
+
+      padding: 11px 18px;
+      border-radius: 5px;
+
+      cursor: pointer;
+      margin-bottom: 20px;
+
+      font-weight: bold;
+    }
+
+    .refresh-btn:hover {
+      background: #173c78;
+    }
+
+    /* ==============================
+       TABLE
+    ============================== */
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #f2f4f7;
+      color: #173c78;
+      text-align: left;
+      padding: 15px;
+    }
+
+    td {
+      padding: 15px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .amount {
+      font-weight: bold;
+    }
+
+    /* ==============================
+       STATUS
+    ============================== */
+
+    .status {
+      display: inline-block;
+
+      padding: 6px 12px;
+      border-radius: 20px;
+
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .status-confirmed {
+      background: #dff5e3;
+      color: green;
+    }
+
+    .status-cancelled {
+      background: #ffe1e1;
+      color: #c62828;
+    }
+
+    /* ==============================
+       CANCEL BUTTON
+    ============================== */
+
+    .cancel-btn {
+      background: #c62828;
+      color: white;
+
+      border: none;
+      padding: 9px 13px;
+
+      border-radius: 5px;
+
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .cancel-btn:hover {
+      background: #a91f1f;
+    }
+
+    .cancel-btn:disabled {
+      background: #bdbdbd;
+      color: #666;
+      cursor: not-allowed;
+    }
+
+    /* ==============================
+       MESSAGES
+    ============================== */
+
+    .empty,
+    .loading,
+    .error {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+    }
+
+    .error {
+      color: #c62828;
+    }
+
+    /* ==============================
+       RESPONSIVE
+    ============================== */
+
+    @media (max-width: 768px) {
+
+      .navbar {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .navbar a {
+        margin: 0 8px;
+      }
+
+      .container {
+        margin: 20px 10px;
+        padding: 20px;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- ==============================
+       NAVBAR
+  ============================== -->
+
+  <div class="navbar">
+
+    <h2>Hotel Management System</h2>
+
+    <div>
+      <a href="/rooms.html">Rooms</a>
+      <a href="/create-booking.html">Create Booking</a>
+      <a href="/booking-history.html">My Booking History</a>
+    </div>
+
+  </div>
+
+
+  <!-- ==============================
+       BOOKING HISTORY
+  ============================== -->
+
+  <div class="container">
+
+    <h1>My Booking History</h1>
+
+    <p class="subtitle">
+      View your previous and current hotel reservations.
+    </p>
+
+    <button
+      class="refresh-btn"
+      onclick="loadBookings()"
+    >
+      Refresh Bookings
+    </button>
+
+
+    <div id="bookingContainer">
+
+      <p class="loading">
+        Loading booking history...
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    // ==========================================
+    // LOAD ALL BOOKINGS
+    // GET /api/bookings
+    // ==========================================
+
+    async function loadBookings() {
+
+      const container =
+        document.getElementById('bookingContainer');
+
+      container.innerHTML =
+        '<p class="loading">Loading booking history...</p>';
+
+      try {
+
+        const response =
+          await fetch('/api/bookings');
+
+        const result =
+          await response.json();
+
+
+        if (!response.ok || !result.success) {
+
+          throw new Error(
+            result.message ||
+            'Failed to load bookings'
+          );
+
+        }
+
+
+        const bookings = result.data;
+
+
+        // No bookings
+        if (!bookings || bookings.length === 0) {
+
+          container.innerHTML =
+            '<p class="empty">No bookings found.</p>';
+
+          return;
+        }
+
+
+        // ==========================================
+        // CREATE TABLE
+        // ==========================================
+
+        let html = `
+
+          <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>Room</th>
+
+                <th>Guest</th>
+
+                <th>Check-In</th>
+
+                <th>Check-Out</th>
+
+                <th>Total Amount</th>
+
+                <th>Status</th>
+
+                <th>Action</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+        `;
+
+
+        // ==========================================
+        // DISPLAY EACH BOOKING
+        // ==========================================
+
+        bookings.forEach(booking => {
+
+          const roomNumber =
+            booking.roomId?.roomNumber || 'N/A';
+
+          const roomType =
+            booking.roomId?.type || '';
+
+
+          const checkIn =
+            new Date(
+              booking.checkInDate
+            ).toLocaleDateString();
+
+
+          const checkOut =
+            new Date(
+              booking.checkOutDate
+            ).toLocaleDateString();
+
+
+          const amount =
+            Number(
+              booking.totalAmount
+            ).toLocaleString();
+
+
+          // Old bookings may not have status
+          const status =
+            booking.status || 'Confirmed';
+
+
+          // Status CSS
+          const statusClass =
+            status === 'Cancelled'
+              ? 'status-cancelled'
+              : 'status-confirmed';
+
+
+          // ==========================================
+          // CANCEL BUTTON
+          // ==========================================
+
+          let actionButton = '';
+
+
+          if (status === 'Cancelled') {
+
+            actionButton = `
+
+              <button
+                class="cancel-btn"
+                disabled
+              >
+                Cancelled
+              </button>
+
+            `;
+
+          } else {
+
+            actionButton = `
+
+              <button
+                class="cancel-btn"
+                onclick="cancelBooking('${booking._id}')"
+              >
+                Cancel Reservation
+              </button>
+
+            `;
+
+          }
+
+
+          html += `
+
+            <tr>
+
+              <td>
+
+                <strong>
+                  Room ${roomNumber}
+                </strong>
+
+                <br>
+
+                <small>
+                  ${roomType}
+                </small>
+
+              </td>
+
+
+              <td>
+                ${booking.guestName}
+              </td>
+
+
+              <td>
+                ${checkIn}
+              </td>
+
+
+              <td>
+                ${checkOut}
+              </td>
+
+
+              <td class="amount">
+
+                LKR ${amount}
+
+              </td>
+
+
+              <td>
+
+                <span
+                  class="status ${statusClass}"
+                >
+
+                  ${status}
+
+                </span>
+
+              </td>
+
+
+              <td>
+
+                ${actionButton}
+
+              </td>
+
+
+            </tr>
+
+          `;
+
+        });
+
+
+        html += `
+
+            </tbody>
+
+          </table>
+
+          </div>
+
+        `;
+
+
+        container.innerHTML = html;
+
+
+      } catch (error) {
+
+        console.error(
+          'Booking loading error:',
+          error
+        );
+
+
+        container.innerHTML = `
+
+          <p class="error">
+
+            Failed to load booking history.
+
+          </p>
+
+        `;
+
+      }
+
+    }
+
+
+
+    // ==========================================
+    // CANCEL BOOKING
+    // PATCH /api/bookings/:id/cancel
+    // ==========================================
+
+    async function cancelBooking(bookingId) {
+
+      const confirmed = confirm(
+        'Are you sure you want to cancel this reservation?'
+      );
+
+
+      if (!confirmed) {
+
+        return;
+
+      }
+
+
+      try {
+
+        const response = await fetch(
+
+          `/api/bookings/${bookingId}/cancel`,
+
+          {
+            method: 'PATCH'
+          }
+
+        );
+
+
+        const result =
+          await response.json();
+
+
+        if (!response.ok || !result.success) {
+
+          throw new Error(
+
+            result.message ||
+            'Failed to cancel reservation'
+
+          );
+
+        }
+
+
+        alert(
+          'Reservation cancelled successfully!'
+        );
+
+
+        // Reload booking history
+        loadBookings();
+
+
+      } catch (error) {
+
+        console.error(
+          'Cancel booking error:',
+          error
+        );
+
+
+        alert(
+          error.message ||
+          'Failed to cancel reservation'
+        );
+
+      }
+
+    }
+
+
+
+    // ==========================================
+    // LOAD BOOKINGS WHEN PAGE OPENS
+    // ==========================================
+
+    loadBookings();
+
+  </script>
+
+</body>
+</html>
