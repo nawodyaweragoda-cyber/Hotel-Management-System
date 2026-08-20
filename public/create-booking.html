@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Booking - Hotel API</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav>
+        <h2>Hotel Management System</h2>
+        <ul>
+            <li><a href="rooms.html">1. All Rooms (GET)</a></li>
+            <li><a href="room-details.html">2. Room Details (GET :id)</a></li>
+            <li><a href="create-booking.html" class="active">3. Create Booking (POST)</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h1>Create New Room Booking</h1>
+            <p class="subtitle">API Endpoint: <code>POST http://localhost:5000/api/bookings</code> (Protected with x-api-key Header)</p>
+
+            <form id="bookingForm">
+                <div class="form-group">
+                    <label>MongoDB Room ID</label>
+                    <input type="text" id="roomId" placeholder="Enter Room ID (24 hex characters)" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Guest Full Name</label>
+                    <input type="text" id="guestName" placeholder="e.g. Nimal Perera" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Check-In Date</label>
+                    <input type="date" id="checkInDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Check-Out Date</label>
+                    <input type="date" id="checkOutDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Total Amount (LKR)</label>
+                    <input type="number" id="totalAmount" placeholder="e.g. 15000" required>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%;">Submit Booking Request</button>
+            </form>
+
+            <div id="alertBox" class="alert"></div>
+        </div>
+    </div>
+
+    <script>
+        const BOOKING_API_URL = 'http://localhost:5000/api/bookings';
+        const API_KEY = 'hotel_secret_key_123'; // .env file එකෙහි ඇති x-api-key එක
+
+        // Auto fill roomId from URL parameter if available
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRoomId = urlParams.get('roomId');
+        if (urlRoomId) {
+            document.getElementById('roomId').value = urlRoomId;
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const alertBox = document.getElementById('alertBox');
+            alertBox.style.display = 'none';
+
+            const payload = {
+                roomId: document.getElementById('roomId').value.trim(),
+                guestName: document.getElementById('guestName').value.trim(),
+                checkInDate: document.getElementById('checkInDate').value,
+                checkOutDate: document.getElementById('checkOutDate').value,
+                totalAmount: Number(document.getElementById('totalAmount').value)
+            };
+
+            try {
+                const response = await fetch(BOOKING_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_KEY // Backend authentication header
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alertBox.className = 'alert alert-success';
+                    alertBox.innerText = '🎉 Booking Created Successfully in MongoDB!';
+                    alertBox.style.display = 'block';
+                    document.getElementById('bookingForm').reset();
+                } else {
+                    alertBox.className = 'alert alert-error';
+                    alertBox.innerText = `Error: ${result.message || 'Failed to create booking'}`;
+                    alertBox.style.display = 'block';
+                }
+            } catch (error) {
+                alertBox.className = 'alert alert-error';
+                alertBox.innerText = 'Server Error: Unable to complete booking request.';
+                alertBox.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
