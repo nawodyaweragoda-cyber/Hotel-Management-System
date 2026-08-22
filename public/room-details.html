@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Details - Hotel API</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <nav>
+        <h2>Hotel Management System</h2>
+        <ul>
+            <li><a href="rooms.html">1. All Rooms (GET)</a></li>
+            <li><a href="room-details.html" class="active">2. Room Details (GET :id)</a></li>
+            <li><a href="create-booking.html">3. Create Booking (POST)</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h1>Single Room Details</h1>
+            <p class="subtitle">API Endpoint: <code>GET http://localhost:5000/api/rooms/:id</code></p>
+
+            <div class="form-group" style="display: flex; gap: 10px;">
+                <input type="text" id="roomIdInput" placeholder="Enter MongoDB Room ID (e.g. 66b1a2...)" required>
+                <button class="btn" onclick="fetchSingleRoom()">Search Room</button>
+            </div>
+
+            <div id="roomDetailsDisplay" style="display: none; margin-top: 25px; background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 5px solid #1e3c72;">
+                <h2 id="dispRoomNumber" style="color: #1e3c72;">Room -</h2>
+                <p style="margin-top: 10px;"><strong>Database Object ID:</strong> <span id="dispId"></span></p>
+                <p style="margin-top: 5px;"><strong>Room Type:</strong> <span id="dispType"></span></p>
+                <p style="margin-top: 5px;"><strong>Price Per Night:</strong> LKR <span id="dispPrice"></span></p>
+                <p style="margin-top: 5px;"><strong>Availability:</strong> <span id="dispStatus"></span></p>
+                
+                <div style="margin-top: 20px;">
+                    <button id="bookNowBtn" class="btn">Proceed to Booking</button>
+                </div>
+            </div>
+
+            <div id="alertBox" class="alert"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api/rooms';
+
+        // URL query parameter එකෙන් ID එක ගන්නවාදැයි පරීක්ෂා කිරීම (e.g., room-details.html?id=XXX)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRoomId = urlParams.get('id');
+
+        if (urlRoomId) {
+            document.getElementById('roomIdInput').value = urlRoomId;
+            fetchSingleRoom();
+        }
+
+        async function fetchSingleRoom() {
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            const alertBox = document.getElementById('alertBox');
+            const displayBox = document.getElementById('roomDetailsDisplay');
+
+            alertBox.style.display = 'none';
+            displayBox.style.display = 'none';
+
+            if (!roomId) {
+                alertBox.className = 'alert alert-error';
+                alertBox.innerText = 'Please enter a valid Room ID!';
+                alertBox.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/${roomId}`);
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const room = result.data;
+                    document.getElementById('dispRoomNumber').innerText = `Room ${room.roomNumber}`;
+                    document.getElementById('dispId').innerText = room._id;
+                    document.getElementById('dispType').innerText = room.type;
+                    document.getElementById('dispPrice').innerText = room.pricePerNight.toLocaleString();
+                    document.getElementById('dispStatus').innerHTML = room.isAvailable ? '<span style="color:green; font-weight:bold;">Available</span>' : '<span style="color:red; font-weight:bold;">Booked</span>';
+
+                    document.getElementById('bookNowBtn').onclick = () => {
+                        window.location.href = `create-booking.html?roomId=${room._id}`;
+                    };
+
+                    displayBox.style.display = 'block';
+                } else {
+                    alertBox.className = 'alert alert-error';
+                    alertBox.innerText = result.message || 'Room not found!';
+                    alertBox.style.display = 'block';
+                }
+            } catch (error) {
+                alertBox.className = 'alert alert-error';
+                alertBox.innerText = 'Failed to fetch room details from server.';
+                alertBox.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
